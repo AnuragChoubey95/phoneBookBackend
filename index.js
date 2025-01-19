@@ -1,20 +1,18 @@
 require('dotenv').config();
 
 const express = require('express')
-const morgan = require('morgan')
 const app = express()
 
+app.use(express.static('dist'))
 app.use(express.json())
 
 const cors = require('cors')
 app.use(cors())
 
-app.use(express.static('dist'))
-
+const morgan = require('morgan')
 morgan.token('body', (req) => {
     return JSON.stringify(req.body); // Convert the body to a string
   });
-
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
 const Contact = require('./models/contacts')
@@ -73,8 +71,16 @@ app.get('/', (request, response) => {
 
 app.get('/api/persons', (request, response) => {
   Contact.find({}).then(contacts => {
-    response.json(contacts)
-})
+    if(contacts){
+      response.json(contacts)
+    } else {
+      response.status(404).end()
+    }
+  })
+  .catch(error => {
+    console.log(error)
+    response.status(500).end()
+  })
 })
 
 app.get('/info', (request, response) => {
@@ -91,46 +97,58 @@ app.get('/info', (request, response) => {
     response.send(htmlResponse)
 })
 
-app.get('/api/persons/:id', (request, response) => {
-  Contact.findById(request.params.id).then(contact => {
-    response.json(contact)
-   })
+app.get('/api/persons/:id', (request, response, next) => {
+  Contact.findById(request.params.id)
+    .then(person => {
+      if (person) {
+        response.json(person)
+      } else {
+        response.status(404).end() 
+      }
+    })
+    .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-const id = request.params.id
-persons = persons.filter(note => note.id !== id)
-
-response.status(204).end()
+app.delete('/api/persons/:id', (request, response, next) => {
+  Contact.findByIdAndDelete(request.params.id)
+      .then(result => {
+          response.status(204).end()
+      })
+      .catch(error => next(error))
 })
 
-const generateId = () => {
-    const maxId = persons.length > 0
-    ? Math.max(...persons.map(n => Number(n.id)))
-    : 0
-
-    return String(maxId + 1)
-}
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
-  console.log(body);
   if(body.name === undefined){
       return response.status(400).json({
-          error: 'content missing'
+          error: 'name missing'
       })
   }
-
-  const contact = new Contact({
+  const person = new Contact({
       name: body.name,
-      number: body.number 
+      number: body.number
   })
-
-  contact.save().then(savedCont => {
-      response.json(savedCont)
+  person.save().then(savedPerson => {
+      response.json(savedPerson)
   })
 })
 
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
+// handler of requests with unknown endpoint
+app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if(error.name === 'CastError') {
+      return response.status(400).send({error: 'malformatted id'})
+  }
+  next(error)
+}
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3002
 app.listen(PORT, () => {
