@@ -64,6 +64,7 @@ let persons = [
   }
 ] 
   
+
 app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
@@ -126,28 +127,31 @@ app.delete('/api/persons/:id', (request, response, next) => {
 })
 
 
-app.post('/api/persons', (request, response) => {
-  const body = request.body
-  if(body.name === undefined){
+app.post('/api/persons', (request, response, next) => {
+  const {name,number} = request.body
+  if(name === undefined){
       return response.status(400).json({
           error: 'name missing'
       })
   }
   const person = new Contact({
-      name: body.name,
-      number: body.number
+      name: name,
+      number: number
   })
   person.save().then(savedPerson => {
       response.json(savedPerson)
   })
+  .catch(error => {
+    next(error); 
+  });
 })
 
 app.put('/api/persons/:id', (request, response, next) => {
   const {name,number} = request.body
 
   const person = {
-      name: body.name,
-      number: body.number,
+      name: name,
+      number: number,
   }
   Contact.findByIdAndUpdate(request.params.id, 
     {name, number}, 
@@ -162,7 +166,6 @@ app.put('/api/persons/:id', (request, response, next) => {
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
-// handler of requests with unknown endpoint
 app.use(unknownEndpoint)
 
 const errorHandler = (error, request, response, next) => {
@@ -170,6 +173,8 @@ const errorHandler = (error, request, response, next) => {
 
   if(error.name === 'CastError') {
       return response.status(400).send({error: 'malformatted id'})
+  } else if (error.name === 'ValidationError') {    
+    return response.status(400).json({ error: error.message })
   }
   next(error)
 }
