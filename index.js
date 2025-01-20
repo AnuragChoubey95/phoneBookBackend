@@ -147,8 +147,8 @@ app.put('/api/persons/:id', (request, response, next) => {
   const {name,number} = request.body
 
   const person = {
-      name: body.name,
-      number: body.number,
+      name: name,
+      number: number,
   }
   Contact.findByIdAndUpdate(request.params.id, 
     {name, number}, 
@@ -167,7 +167,7 @@ const unknownEndpoint = (request, response) => {
 app.use(unknownEndpoint)
 
 const errorHandler = (error, request, response, next) => {
-  // console.error(error.message)
+  console.error(error.message)
 
   if(error.name === 'CastError') {
       return response.status(400).send({error: 'malformatted id'})
