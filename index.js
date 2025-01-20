@@ -64,7 +64,6 @@ let persons = [
   }
 ] 
   
-
 app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
@@ -83,19 +82,28 @@ app.get('/api/persons', (request, response) => {
   })
 })
 
-app.get('/info', (request, response) => {
-    const info = `Phonebook has info for ${persons.length} people.`
-    const date = new Date();
-    const formattedDate = date.toString()
-    const htmlResponse = `
-        <body>
-            <p>${info}</p>
-            <p>${formattedDate}</p>
-        </body>
-        </html>
-    `
-    response.send(htmlResponse)
-})
+app.get('/info', (request, response, next) => {
+  Contact.countDocuments({})
+      .then(count => {
+          const info = `Phonebook has info for ${count} people.`;
+          const date = new Date();
+          const formattedDate = date.toString();
+
+          const htmlResponse = `
+              <body>
+                  <p>${info}</p>
+                  <p>${formattedDate}</p>
+              </body>
+          `;
+
+          response.send(htmlResponse);
+      })
+      .catch(error => {
+          console.error('Error fetching data:', error);
+          next(error); 
+      });
+});
+
 
 app.get('/api/persons/:id', (request, response, next) => {
   Contact.findById(request.params.id)
@@ -132,6 +140,23 @@ app.post('/api/persons', (request, response) => {
   person.save().then(savedPerson => {
       response.json(savedPerson)
   })
+})
+
+app.put('/api/persons/:id', (request, response, next) => {
+  const {name,number} = request.body
+
+  const person = {
+      name: body.name,
+      number: body.number,
+  }
+  Contact.findByIdAndUpdate(request.params.id, 
+    {name, number}, 
+    {new: true, runValidators: true, context:'query'})
+      .then(updatedPerson => {
+          response.json(updatedPerson)
+          console.log(updatedPerson)
+      })
+      .catch(error => next(error))
 })
 
 const unknownEndpoint = (request, response) => {
