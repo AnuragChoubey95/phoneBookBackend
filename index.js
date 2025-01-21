@@ -1,4 +1,5 @@
-require('dotenv').config()
+const config = require('./utils/config')
+const logger = require('./utils/logger')
 
 const express = require('express')
 const app = express()
@@ -11,7 +12,7 @@ app.use(cors())
 
 const morgan = require('morgan')
 morgan.token('body', (req) => {
-  return JSON.stringify(req.body) // Convert the body to a string
+  return JSON.stringify(req.body) 
 })
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
@@ -114,7 +115,6 @@ app.put('/api/persons/:id', (request, response, next) => {
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
-// handler of requests with unknown endpoint
 app.use(unknownEndpoint)
 
 const errorHandler = (error, request, response, next) => {
@@ -129,7 +129,6 @@ const errorHandler = (error, request, response, next) => {
 }
 app.use(errorHandler)
 
-const PORT = process.env.PORT || 3002
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
+app.listen(config.PORT, () => {
+  logger.info(`Server running on port ${config.PORT}`)
 })
