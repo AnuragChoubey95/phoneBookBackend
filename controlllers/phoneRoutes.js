@@ -1,5 +1,5 @@
 const phoneRouter = require('express').Router()
-const Contact = require('./models/contacts')
+const Contact = require('../models/contacts')
 
 
 phoneRouter.get('/', (request, response) => {
